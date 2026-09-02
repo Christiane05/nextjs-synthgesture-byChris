@@ -53,15 +53,38 @@ const BASS_TILT_DOWN_DEGREES = new Set(["I", "II", "IV", "V", "VI"])
 const BASS_TILT_UP_DEGREES = new Set(["II", "III", "V", "VI", "VII"])
 const BASS_TILT_THRESHOLD = 0.3
 
-export function bassHzFromRoman(roman: string | null | undefined, keyHz: number, tilt = 0): number | null {
-  if (!roman) return null
+function bassSemitonesFromRoman(roman: string, tilt: number): number | null {
   const key = roman.toUpperCase()
   const degree = DEGREE_MAP[key]
   if (!degree) return null
   let semis = BASS_DEGREE_SEMITONES[degree]
   if (tilt > BASS_TILT_THRESHOLD && BASS_TILT_UP_DEGREES.has(key)) semis -= 1
   else if (tilt < -BASS_TILT_THRESHOLD && BASS_TILT_DOWN_DEGREES.has(key)) semis += 1
+  return semis
+}
+
+export function bassHzFromRoman(roman: string | null | undefined, keyHz: number, tilt = 0): number | null {
+  if (!roman) return null
+  const semis = bassSemitonesFromRoman(roman, tilt)
+  if (semis === null) return null
   return (keyHz / 2) * 2 ** (semis / 12)
+}
+
+const BASS_NOTE_NAMES = ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"]
+
+/** Returns the displayed bass note after applying the active right-hand tilt. */
+export function bassNoteFromRoman(roman: string | null | undefined, keyHz: number, tilt = 0): string | null {
+  if (!roman) return null
+  const semis = bassSemitonesFromRoman(roman, tilt)
+  if (semis === null) return null
+  const keyOption = KEY_OPTIONS.find((option) => option.hz === keyHz)
+  const keyName = keyOption?.label.split("/")[0] ?? "A"
+  const normalizedKey = keyName.replace("b", "#")
+  const keyIndex = BASS_NOTE_NAMES.indexOf(normalizedKey)
+  if (keyIndex < 0) return null
+  const noteIndex = (keyIndex + semis) % 12
+  const octave = 2 + Math.floor((keyIndex + semis + 9) / 12)
+  return `${BASS_NOTE_NAMES[(noteIndex + 12) % 12]}${octave}`
 }
 
 /** All 12 chromatic notes for the "A" bass octave (A1..G#2) — reserved for future

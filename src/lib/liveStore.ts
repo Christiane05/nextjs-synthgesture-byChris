@@ -6,6 +6,9 @@ export type LiveState = {
   chord: string | null
   quality: string
   qualityIndex: number
+  bassDegree: string | null
+  bassNote: string | null
+  bassVolume: number
 }
 
 export const idleLive: LiveState = {
@@ -14,6 +17,9 @@ export const idleLive: LiveState = {
   chord: null,
   quality: "--",
   qualityIndex: 0,
+  bassDegree: null,
+  bassNote: null,
+  bassVolume: 0,
 }
 
 /** Updated every rAF tick by the gesture loop — read via useSyncExternalStore so only

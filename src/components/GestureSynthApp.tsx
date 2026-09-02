@@ -1,9 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { LoopEngine, type LoopState } from "@/audio/LoopEngine"
 import { SynthEngine } from "@/audio/SynthEngine"
-import { KEY_OPTIONS, bassHzFromRoman, chordTonesFromRoman, notesForQuality, qualityLabel } from "@/lib/chords"
+import { KEY_OPTIONS, bassHzFromRoman, bassNoteFromRoman, chordTonesFromRoman, notesForQuality, qualityLabel } from "@/lib/chords"
 import {
   chordFromLeftHand,
   createChordStabilizer,
@@ -15,23 +14,19 @@ import {
 } from "@/lib/gestures"
 import { useHandTracking } from "@/hooks/useHandTracking"
 import { liveStore, type LiveState } from "@/lib/liveStore"
-import { loopProgressStore } from "@/lib/loopProgressStore"
-import { ChordDisplay } from "./ChordDisplay"
-import { LoopControls } from "./LoopControls"
+import { BassDisplay, LeftChordsDisplay } from "./ChordDisplay"
 import { StartGate } from "./StartGate"
 import { WebcamView } from "./WebcamView"
 
 export function GestureSynthApp() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const synthRef = useRef(new SynthEngine())
-  const loopRef = useRef<LoopEngine | null>(null)
   const stabilizeRef = useRef(createChordStabilizer())
   const bassStabilizeRef = useRef(createDegreeStabilizer())
   const { status, error, handsRef } = useHandTracking(videoRef)
 
   const [audioOn, setAudioOn] = useState(false)
   const [keyHz, setKeyHz] = useState<number>(KEY_OPTIONS[0].hz)
-  const [loopState, setLoopState] = useState<LoopState>("idle")
 
   const getResult = useCallback(() => handsRef.current.result, [handsRef])
   const getWaveParams = useCallback(() => {
@@ -39,13 +34,21 @@ export function GestureSynthApp() {
     return { volume: live.volume, qualityIndex: live.qualityIndex, tone: live.tone, chord: live.chord }
   }, [])
 
-  // --- Main data flow: landmarks → gesture → chord → SynthEngine/LoopEngine → audio output ---
+  // --- Main data flow: landmarks → gesture → chord → SynthEngine → audio output ---
   useEffect(() => {
     let raf = 0
     let lastKey = ""
 
     const publish = (next: LiveState) => {
-      const key = [next.chord, next.qualityIndex, Math.round(next.tone * 100), Math.round(next.volume * 16)].join("|")
+      const key = [
+        next.chord,
+        next.qualityIndex,
+        next.bassDegree,
+        next.bassNote,
+        Math.round(next.tone * 100),
+        Math.round(next.volume * 16),
+        Math.round(next.bassVolume * 16),
+      ].join("|")
       if (key === lastKey) return
       lastKey = key
       liveStore.set(next)
@@ -55,7 +58,6 @@ export function GestureSynthApp() {
       const now = performance.now()
       const { left, right } = handsRef.current
       const synth = synthRef.current
-      const loopEngine = loopRef.current
 
       let candidate: StabilizedChord | null = null
       if (left) {
@@ -76,11 +78,9 @@ export function GestureSynthApp() {
 
       // Left hand: chord volume by its own height — independent of the right hand.
       const leftVolume = left ? volumeFromHand(left) : 0
-      let playedFreqs: number[] = []
       if (audioOn) {
         if (chord && qualityIndex >= 1) {
           const notes = notesForQuality(chordTonesFromRoman(chord, isMajor, keyHz), qualityIndex, isMajor)
-          playedFreqs = notes
           synth.playNotes(notes)
           synth.setVolume(leftVolume)
         } else {
@@ -91,7 +91,8 @@ export function GestureSynthApp() {
       // Right hand: bass root, by its own height — independent of the left hand.
       // Tilt nudges the bass root by a semitone (right = up, left = down) on specific degrees.
       let tone = 0
-      let bassFreq = 0
+      let bassDegree: string | null = null
+      let bassNote: string | null = null
       let bassVolume = 0
       if (right) {
         tone = wristTilt(right, "Right")
@@ -99,12 +100,10 @@ export function GestureSynthApp() {
 
         // Right hand's finger/thumb pattern → Roman-numeral bass degree (root only, no chord)
         const rawDegree = chordFromLeftHand(right, "Right")
-        const degree = bassStabilizeRef.current(rawDegree, now)
-        const hz = bassHzFromRoman(degree, keyHz, tone)
-        if (hz) {
-          bassFreq = hz
-          bassVolume = rightVolume
-        }
+        bassDegree = bassStabilizeRef.current(rawDegree, now)
+        const hz = bassHzFromRoman(bassDegree, keyHz, tone)
+        bassNote = bassNoteFromRoman(bassDegree, keyHz, tone)
+        bassVolume = hz ? rightVolume : 0
 
         if (audioOn) {
           if (hz) synth.playBass(hz, rightVolume)
@@ -114,18 +113,16 @@ export function GestureSynthApp() {
         synth.stopBass()
       }
 
-      if (loopEngine) {
-        loopEngine.recordFrame(
-          playedFreqs,
-          playedFreqs.length > 0 ? leftVolume : 0,
-          tone,
-          bassFreq,
-          bassVolume,
-        )
-        loopProgressStore.set(loopEngine.getProgress())
-      }
-
-      publish({ volume: leftVolume, tone, chord, quality, qualityIndex })
+      publish({
+        volume: leftVolume,
+        tone,
+        chord,
+        quality,
+        qualityIndex,
+        bassDegree,
+        bassNote,
+        bassVolume,
+      })
       raf = requestAnimationFrame(tick)
     }
 
@@ -134,27 +131,8 @@ export function GestureSynthApp() {
   }, [audioOn, handsRef, keyHz])
 
   const handleStart = useCallback(() => {
-    const ctx = synthRef.current.getContext()
-    const bus = synthRef.current.getOutputBus()
-    loopRef.current = new LoopEngine(ctx, bus)
+    synthRef.current.getContext()
     setAudioOn(true)
-  }, [])
-
-  const handleRecord = useCallback(() => {
-    loopRef.current?.startRecording()
-    setLoopState("recording")
-  }, [])
-
-  const handleStop = useCallback(() => {
-    const loop = loopRef.current
-    if (!loop) return
-    void loop.stopRecording().then(() => setLoopState(loop.getState()))
-  }, [])
-
-  const handleClear = useCallback(() => {
-    loopRef.current?.clear()
-    setLoopState("idle")
-    loopProgressStore.set(0)
   }, [])
 
   const statusText = useMemo(() => {
@@ -187,10 +165,8 @@ export function GestureSynthApp() {
         )}
       </div>
 
-      {audioOn && <ChordDisplay />}
-      {audioOn && (
-        <LoopControls loopState={loopState} onRecord={handleRecord} onStop={handleStop} onClear={handleClear} />
-      )}
+      {audioOn && <LeftChordsDisplay />}
+      {audioOn && <BassDisplay />}
 
       {!audioOn && (
         <StartGate cameraReady={status === "ready"} cameraError={error} onStart={handleStart} />

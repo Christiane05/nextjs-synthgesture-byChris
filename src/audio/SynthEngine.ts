@@ -91,12 +91,6 @@ export class SynthEngine {
     return this.ensureContext()
   }
 
-  // Output bus — LoopEngine connects here for background tab support
-  getOutputBus(): GainNode {
-    this.ensureContext()
-    return this.bus!
-  }
-
   setVolume(level: number) {
     if (!this.ctx || !this.masterGain) return
     const t = Math.max(0, Math.min(1, level))
