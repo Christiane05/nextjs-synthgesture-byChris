@@ -4,6 +4,7 @@ export type LiveState = {
   volume: number
   tone: number
   chord: string | null
+  chordName: string | null
   quality: string
   qualityIndex: number
   bassDegree: string | null
@@ -15,6 +16,7 @@ export const idleLive: LiveState = {
   volume: 0,
   tone: 0,
   chord: null,
+  chordName: null,
   quality: "--",
   qualityIndex: 0,
   bassDegree: null,

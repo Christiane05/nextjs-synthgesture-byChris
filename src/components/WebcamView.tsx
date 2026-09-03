@@ -7,8 +7,13 @@ import { chordColorVar } from "@/lib/chords"
 type WaveParams = {
   volume: number
   qualityIndex: number
-  tone: number
+  
   chord: string | null
+
+  bassVolume: number
+  bassNote: string | null
+  bassDegree: string | null
+  
 }
 
 type Props = {
@@ -31,48 +36,86 @@ function coverCrop(vw: number, vh: number, cw: number, ch: number) {
   return { sx: 0, sy: (vh - sHeight) / 2, sWidth, sHeight }
 }
 
-function drawWaves(
+  function drawWaves(
   ctx: CanvasRenderingContext2D,
   volume: number,
-  qualityIndex: number,
-  tone: number,
-  chord: string | null,
+  layers: number,
+  rgb: string,
+  baseY: number,
+  amplitude: number = 20,
+  frequency: number = 0.005,
 ) {
-  if (qualityIndex === 0) return
-  const layers = qualityIndex
-  const baseY = ctx.canvas.height - 56
+  if (volume <= 0 || layers <= 0) return
+
   const width = ctx.canvas.width
+
+  // Volume → épaisseur
   const lineW = 1 + volume * 8
-  const noiseAmt = ((tone + 1) / 2) * 25
-  const noiseFreq = 0.05 + ((tone + 1) / 2) * 0.15
-  const rgb = chordColorVar(chord)
-  const isMajor = chord != null && chord === chord.toUpperCase()
-  const active = chord && chord !== "--"
-  const alpha = active ? (isMajor ? 1 : 0.7) : 0.3
+
+  // Tone → quantité et fréquence du jitter
+  const noiseAmt = ((1 + 1) / 2) * 25
+  const noiseFreq = 0.05 + ((1 + 1) / 2) * 0.15
+
+  // Animation
   const t = performance.now() * 0.004
 
   ctx.save()
+
+  // Volume → intensité du glow
   ctx.shadowBlur = 10 + volume * 20
-  ctx.shadowColor = `rgba(${rgb}, ${0.5 * alpha})`
+  ctx.shadowColor = `rgba(${rgb}, ${0.5 * volume})`
 
   for (let i = 0; i < layers; i++) {
     ctx.beginPath()
-    const y0 = baseY + (i - (layers - 1) / 2) * 12
+
+    // Position verticale de chaque couche
+    const y0 =
+      baseY +
+      (i - (layers - 1) / 2) * 12
+
     for (let x = 0; x <= width; x += 10) {
-      const wave = Math.sin(x * 0.005 + t + i * 0.5) * 20
-      const jitter = (Math.random() - 0.5) * noiseAmt * Math.sin(x * noiseFreq + t)
+      // Amplitude de la wave
+      const wave =
+        Math.sin(
+          x * frequency +
+          t +
+          i * 0.5
+        ) * amplitude
+
+      // Instabilité contrôlée par tone
+      const jitter =
+        (Math.random() - 0.5) *
+        noiseAmt *
+        Math.sin(
+          x * noiseFreq + t
+        )
+
       const y = y0 + wave + jitter
-      if (x === 0) ctx.moveTo(x, y)
-      else ctx.lineTo(x, y)
+
+      if (x === 0) {
+        ctx.moveTo(x, y)
+      } else {
+        ctx.lineTo(x, y)
+      }
     }
-    ctx.strokeStyle = `rgba(${rgb}, ${alpha})`
-    ctx.lineWidth = Math.max(1, lineW - i * 0.5)
+
+    ctx.strokeStyle = `rgba(${rgb}, ${volume})`
+
+    ctx.lineWidth = Math.max(
+      1,
+      lineW - i * 0.5
+    )
+
     ctx.lineCap = "round"
     ctx.lineJoin = "round"
+
     ctx.stroke()
   }
+
   ctx.restore()
 }
+
+
 
 /** Draws the mirrored webcam feed, hand landmark dots and the reactive wave visualizer.
  * Runs its own rAF loop reading refs/callbacks — never touches React state. */
@@ -124,7 +167,36 @@ export function WebcamView({ videoRef, getResult, getWaveParams, dimmed }: Props
       ctx.restore()
 
       const wave = getWaveParams()
-      drawWaves(ctx, wave.volume, wave.qualityIndex, wave.tone, wave.chord)
+      console.log ("Basse volume : ", wave.bassVolume)
+
+      const chordRgb = chordColorVar(wave.chord)
+      drawWaves(
+        ctx,
+        wave.volume,                         // volume
+        wave.qualityIndex,                   // nombre de layers
+        chordRgb,                            // couleur
+        ctx.canvas.height - 56,              // position
+        20,                                 // amplitude
+        0.005                               // fréquence
+      )
+
+      
+      const chordRgbBass = "252, 211, 77"
+      drawWaves(
+        ctx,
+        wave.bassVolume,                     // volume de la basse
+        1,                                  // une seule layer
+        chordRgbBass,                            // couleur de la basse
+        ctx.canvas.height - 56,             // position
+        35,                                 // amplitude plus importante
+        0.003                               // fréquence plus lente
+      )
+
+
+      
+      
+      
+      {/*drawWaves(ctx, wave.volume, wave.qualityIndex, wave.tone, wave.chord)*/}
 
       raf = requestAnimationFrame(paint)
     }

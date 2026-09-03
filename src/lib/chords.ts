@@ -127,6 +127,29 @@ function degreeHz(keyHz: number, degree: number): number {
   return keyHz * 2 ** (semis / 12)
 }
 
+const CHORD_NOTE_NAMES = ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"]
+
+/** Displayed left-hand chord name — fundamental note + Major/Minor, driven by isMajorMode. */
+export function chordNameFromRoman(
+  roman: string | null | undefined,
+  keyHz: number,
+  isMajorMode: boolean,
+): string | null {
+  if (!roman || roman === "--") return null
+  const degree = DEGREE_MAP[roman.toUpperCase()]
+  if (!degree) return null
+
+  const semis = DEGREE_SEMITONES[degree]
+  const keyOption = KEY_OPTIONS.find((option) => option.hz === keyHz)
+  const keyName = keyOption?.label.split("/")[0] ?? "A"
+  const keyIndex = CHORD_NOTE_NAMES.indexOf(keyName.replace("b", "#"))
+  if (keyIndex < 0) return null
+
+  const noteIndex = (keyIndex + semis + 12) % 12
+  const noteName = CHORD_NOTE_NAMES[noteIndex]
+  return `${noteName} ${isMajorMode ? "Major" : "Minor"}`
+}
+
 export function chordTonesFromRoman(
   roman: string | null | undefined,
   isMajorMode: boolean,

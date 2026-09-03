@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { SynthEngine } from "@/audio/SynthEngine"
-import { KEY_OPTIONS, bassHzFromRoman, bassNoteFromRoman, chordTonesFromRoman, notesForQuality, qualityLabel } from "@/lib/chords"
+import { KEY_OPTIONS, bassHzFromRoman, bassNoteFromRoman, chordNameFromRoman, chordTonesFromRoman, notesForQuality, qualityLabel } from "@/lib/chords"
 import {
   chordFromLeftHand,
   createChordStabilizer,
@@ -31,7 +31,10 @@ export function GestureSynthApp() {
   const getResult = useCallback(() => handsRef.current.result, [handsRef])
   const getWaveParams = useCallback(() => {
     const live = liveStore.get()
-    return { volume: live.volume, qualityIndex: live.qualityIndex, tone: live.tone, chord: live.chord }
+    return { 
+      volume: live.volume, qualityIndex: live.qualityIndex, tone: live.tone, chord: live.chord,
+      bassVolume: live.bassVolume, bassNote: live.bassNote, bassDegree: live.bassDegree,
+    }
   }, [])
 
   // --- Main data flow: landmarks → gesture → chord → SynthEngine → audio output ---
@@ -42,6 +45,7 @@ export function GestureSynthApp() {
     const publish = (next: LiveState) => {
       const key = [
         next.chord,
+        next.chordName,
         next.qualityIndex,
         next.bassDegree,
         next.bassNote,
@@ -75,6 +79,7 @@ export function GestureSynthApp() {
       const isMajor = stable?.isMajorMode ?? true
       const qualityIndex = stable?.qualityIndex ?? 0
       const quality = qualityLabel(qualityIndex, isMajor, false)
+      const chordName = chordNameFromRoman(chord, keyHz, isMajor)
 
       // Left hand: chord volume by its own height — independent of the right hand.
       const leftVolume = left ? volumeFromHand(left) : 0
@@ -117,6 +122,7 @@ export function GestureSynthApp() {
         volume: leftVolume,
         tone,
         chord,
+        chordName,
         quality,
         qualityIndex,
         bassDegree,
@@ -142,6 +148,8 @@ export function GestureSynthApp() {
     if (!audioOn) return "Audio coupé — cliquez sur Start"
     return "Main gauche = accord · main droite = basse (I-VII) + volume/filtre"
   }, [audioOn, error, status])
+
+  
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-black">
