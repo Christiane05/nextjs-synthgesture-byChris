@@ -167,9 +167,8 @@ export function WebcamView({ videoRef, getResult, getWaveParams, dimmed }: Props
       ctx.restore()
 
       const wave = getWaveParams()
-      console.log ("Basse volume : ", wave.bassVolume)
 
-      const chordRgb = chordColorVar(wave.chord)
+      const chordRgb = "252, 211, 77"
       drawWaves(
         ctx,
         wave.volume,                         // volume
@@ -181,7 +180,7 @@ export function WebcamView({ videoRef, getResult, getWaveParams, dimmed }: Props
       )
 
       
-      const chordRgbBass = "252, 211, 77"
+      const chordRgbBass = "255, 90, 140"
       drawWaves(
         ctx,
         wave.bassVolume,                     // volume de la basse

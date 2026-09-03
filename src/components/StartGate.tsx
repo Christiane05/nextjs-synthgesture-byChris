@@ -15,7 +15,7 @@ export function StartGate({ cameraReady, cameraError, onStart }: Props) {
           <p className="max-w-xs text-sm text-red-400">{cameraError}</p>
         ) : (
           <p className="max-w-xs text-sm text-zinc-400">
-            Lève la main gauche pour jouer un accord, la main droite pour le volume et le filtre.
+            Lève la main gauche pour jouer un accord, la main droite pour jouer la basse.
           </p>
         )}
         <button

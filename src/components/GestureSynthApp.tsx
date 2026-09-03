@@ -42,6 +42,8 @@ export function GestureSynthApp() {
     let raf = 0
     let lastKey = ""
 
+    
+
     const publish = (next: LiveState) => {
       const key = [
         next.chord,
@@ -105,7 +107,8 @@ export function GestureSynthApp() {
 
         // Right hand's finger/thumb pattern → Roman-numeral bass degree (root only, no chord)
         const rawDegree = chordFromLeftHand(right, "Right")
-        bassDegree = bassStabilizeRef.current(rawDegree, now)
+        bassDegree = bassStabilizeRef.current(rawDegree?.toUpperCase() ?? null, now)
+
         const hz = bassHzFromRoman(bassDegree, keyHz, tone)
         bassNote = bassNoteFromRoman(bassDegree, keyHz, tone)
         bassVolume = hz ? rightVolume : 0
@@ -118,6 +121,27 @@ export function GestureSynthApp() {
         synth.stopBass()
       }
 
+      let displayBassDegree = bassDegree
+
+      if (bassDegree) {
+        if (tone > 0.3) {
+          if (bassDegree !== "I" && bassDegree !== "IV") {
+            displayBassDegree = `${bassDegree}b`
+          } else {
+            displayBassDegree = bassDegree
+          }
+        } else if (tone < -0.3) {
+          if (bassDegree !== "III" && bassDegree !== "VII") {
+            displayBassDegree = `${bassDegree}#` 
+          } else {
+            displayBassDegree = bassDegree
+          }
+        }
+        else if (tone === 0.3) {
+          displayBassDegree = `${bassDegree}` 
+        }
+      }
+
       publish({
         volume: leftVolume,
         tone,
@@ -125,7 +149,7 @@ export function GestureSynthApp() {
         chordName,
         quality,
         qualityIndex,
-        bassDegree,
+        bassDegree: displayBassDegree,
         bassNote,
         bassVolume,
       })

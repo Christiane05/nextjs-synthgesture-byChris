@@ -8,7 +8,7 @@ import { chordColorVar } from "@/lib/chords"
  * never the rest of the app, no matter how fast the rAF loop publishes updates. */
 export function LeftChordsDisplay() {
   const live = useSyncExternalStore(liveStore.subscribe, liveStore.get, () => idleLive)
-  const rgb = chordColorVar(live.chord)
+  const rgb = "252, 211, 77"
   
   const active = Boolean(live.chord)
 
@@ -38,14 +38,14 @@ export function LeftChordsDisplay() {
 export function BassDisplay() {
   const live = useSyncExternalStore(liveStore.subscribe, liveStore.get, () => idleLive)
   const active = Boolean(live.bassDegree)
-  const rgbBass = chordColorVar(live.bassDegree)
+  const rgbBass = "255, 90, 140"
 
   return (
     <div className="pointer-events-none absolute bottom-6 left-1/2 right-0 flex flex-col items-center gap-2">
       <div className="text-sm uppercase tracking-[0.2em] text-zinc-400">Bass</div>
       <div
-        className="text-4xl font-bold tabular-nums  text-amber-300"
-        style={{ color: `rgbBass(${rgbBass})`, opacity: active ? 1 : 0.4 }}
+        className="text-4xl font-bold tabular-nums text-pink-400"
+        style={{ color: `rgb(${rgbBass})`, opacity: active ? 1 : 0.4 }}
     
       >
         {live.bassDegree ?? "--"}
@@ -58,8 +58,8 @@ export function BassDisplay() {
       <div className="text-sm text-zinc-300">{live.bassNote ?? "--"}</div>
       <div className="h-1.5 w-40 overflow-hidden rounded-full bg-zinc-700">
         <div
-          className="h-full bg-amber-300 transition-[width] duration-75"
-          style={{ width: `${Math.round(live.bassVolume * 100)}%` }}
+          className="h-full transition-[width] duration-75"
+          style={{ width: `${Math.round(live.bassVolume * 100)}%`, backgroundColor: `rgb(${rgbBass})` }}
         />
       </div>
     </div>
