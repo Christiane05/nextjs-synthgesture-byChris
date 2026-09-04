@@ -160,10 +160,17 @@ export function GestureSynthApp() {
     return () => cancelAnimationFrame(raf)
   }, [audioOn, handsRef, keyHz])
 
-  const handleStart = useCallback(() => {
-    synthRef.current.getContext()
-    setAudioOn(true)
-  }, [])
+  const handleStart = useCallback(async () => {
+  const ctx = synthRef.current.getContext()
+
+  if (ctx.state === "suspended") {
+    await ctx.resume()
+  }
+
+  console.log("AudioContext:", ctx.state)
+
+  setAudioOn(true)
+}, [])
 
   const statusText = useMemo(() => {
     if (error) return "Caméra bloquée — autorisez l'accès et rechargez"
