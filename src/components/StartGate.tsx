@@ -10,19 +10,20 @@ export function StartGate({ cameraReady, cameraError, onStart }: Props) {
   return (
     <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-4 rounded-2xl bg-zinc-900/90 px-10 py-8 text-center text-zinc-50 shadow-xl">
-        <h1 className="text-2xl font-semibold">Gesture Synth</h1>
+        <h1 className="text-2xl font-semibold ">Gesture Synth</h1>
         {cameraError ? (
           <p className="max-w-xs text-sm text-red-400">{cameraError}</p>
         ) : (
-          <p className="max-w-xs text-sm text-zinc-400">
-            Lève la main gauche pour jouer un accord, la main droite pour jouer la basse.
+          <p className="max-w-xs text-sm text-zinc-300">
+            Lève la main gauche pour jouer un accord et lève la main droite pour jouer la basse.
+            Cette application requiert l'utilisation de votre caméra.
           </p>
         )}
         <button
           type="button"
           onClick={onStart}
           disabled={!cameraReady}
-          className="rounded-full bg-emerald-400 px-6 py-2 font-medium text-black transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-zinc-600 disabled:text-zinc-400"
+          className="rounded-full bg-pink-500 px-6 py-2 font-medium text-zinc-100 transition hover:bg-pink-400 disabled:cursor-not-allowed disabled:bg-zinc-600 disabled:text-zinc-400"
         >
           {cameraReady ? "Start" : "Chargement de la caméra…"}
         </button>

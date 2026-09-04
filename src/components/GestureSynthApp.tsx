@@ -170,7 +170,7 @@ export function GestureSynthApp() {
     if (status === "requesting") return "Demande d'accès à la caméra…"
     if (status === "loading") return "Chargement du modèle de mains…"
     if (!audioOn) return "Audio coupé — cliquez sur Start"
-    return "Main gauche = accord · main droite = basse (I-VII) + volume/filtre"
+    return "Main gauche = Chord Maj / min + Volume \n Main droite = Bass # / b + Volume \n VI = I__I \n VII = _I__I "
   }, [audioOn, error, status])
 
   
@@ -179,23 +179,31 @@ export function GestureSynthApp() {
     <div className="relative h-dvh w-full overflow-hidden bg-black">
       <video ref={videoRef} className="hidden" playsInline muted autoPlay />
       <WebcamView videoRef={videoRef} getResult={getResult} getWaveParams={getWaveParams} dimmed={!audioOn} />
+      
+        
+          <div className="pointer-events-none absolute top-4 left-4 z-10 flex items-center gap-3 text-sm text-zinc-200">
+            <span  className="whitespace-pre-line left-4">{statusText}</span>
+          </div>
 
-      <div className="pointer-events-none absolute top-4 left-4 z-10 flex items-center gap-3 text-sm text-zinc-200">
-        <span>{statusText}</span>
-        {audioOn && (
-          <select
-            value={keyHz}
-            onChange={(e) => setKeyHz(Number(e.target.value))}
-            className="pointer-events-auto rounded bg-zinc-800/80 px-2 py-1 text-zinc-100"
-          >
-            {KEY_OPTIONS.map((k) => (
-              <option key={k.label} value={k.hz}>
-                {k.label}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
+            {audioOn && (
+              <div className="pointer-events-none absolute top-4 left-1/2 z-10 -translate-x-1/2">
+                <select
+                  value={keyHz}
+                  onChange={(e) => setKeyHz(Number(e.target.value))}
+                  className="pointer-events-auto  rounded  bg-zinc-800/80 px-2 py-1 text-pink-300 focus:outline-none  "
+                >
+                  {KEY_OPTIONS.map((k) => (
+                    <option 
+                        key={k.label} 
+                        value={k.hz}   
+                    >
+                      {k.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          
 
       {audioOn && <LeftChordsDisplay />}
       {audioOn && <BassDisplay />}
